@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>APP SẢN XUẤT EMS - BIC (7 LINES & 19 STAGES)</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="toast" class="hidden">Thông báo</div>
+
+    <!-- 1. MÀN HÌNH ĐĂNG NHẬP -->
+    <div id="login-screen">
+      <div class="login-card" style="max-width: 460px;">
+        <h2 style="color: var(--navy); text-align: center; margin-bottom: 4px;">APP SẢN XUẤT EMS - BIC</h2>
+        <p style="text-align: center; color: var(--gray-dark); font-size: 12px; margin-bottom: 16px;">
+          7 Lines • 19 Công đoạn (Stages) • Tách biệt Module Kho NVL (`kho.html`)
+        </p>
+        <form id="login-form">
+          <div class="input-group">
+            <label>Tài khoản</label>
+            <input type="text" id="username" required value="ADMIN" style="text-transform: uppercase" />
+          </div>
+          <div class="input-group">
+            <label>Mật khẩu</label>
+            <input type="password" id="password" required value="123" />
+          </div>
+          <button type="submit" class="btn btn-primary w-100" style="min-height: 42px;">ĐĂNG NHẬP</button>
+        </form>
+
+        <div style="margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--border); text-align: left;">
+          <div style="font-size: 11px; font-weight: 700; color: var(--gray-dark); margin-bottom: 8px;">
+            ⚡ CHỌN NHANH TÀI KHOẢN ĐỂ TEST PHÂN QUYỀN 7 LINES:
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <button type="button" class="btn btn-primary btn-sm" style="grid-column: span 2;" onclick="quickLogin('ADMIN')">
+              🖥️ ADMIN VĂN PHÒNG (Toàn quyền SX + Mở sang Kho NVL)
+            </button>
+            <button type="button" class="btn btn-danger btn-sm" onclick="quickLogin('LD_CUTTING')">
+              1. Line CUTTING (Cắt/Nhiệt/Độ cứng + Mở Kho NVL)
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="quickLogin('LD_NC')">
+              2. Line NC (NC1, NC2, NC3)
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="quickLogin('LD_MNC')">
+              3. Line MNC (MNC1, MNC2, MNC3)
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="quickLogin('LD_GS_GV')">
+              4. Line GS-GV (GS, GV)
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="quickLogin('LD_GP_GE_GI')">
+              5. Line GP-GE-GI (GP, GE, GI)
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="quickLogin('LD_ASSY')">
+              6. Line ASSY (Lắp ráp, Đóng thùng, Đi/Nhận GCN)
+            </button>
+            <button type="button" class="btn btn-success btn-sm" style="grid-column: span 2;" onclick="quickLogin('LD_KENSA')">
+              7. Line KENSA (Kiểm tra ➔ Nhập Kho Thành Phẩm)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. MÀN HÌNH ADMIN PORTAL (CHỈ CHỨA LOGIC SẢN XUẤT - GỌN GÀNG DỄ SỬA) -->
+    <div id="admin-screen" class="hidden">
+      <header class="navbar">
+        <div class="nav-brand">
+          <span>🏭 EMS PRODUCTION PORTAL</span>
+          <span class="badge-mode">7 LINES • 19 STAGES</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; flex-wrap: wrap;">
+          <!-- NÚT CHUYỂN SANG FILE KHO.HTML ĐỘC LẬP -->
+          <a href="kho.html" class="btn btn-sm btn-success" style="text-decoration:none; color:#fff;">
+            📦 Mở App Kho NVL (`kho.html`) ➔
+          </a>
+          <select onchange="if(this.value) quickLogin(this.value)" style="padding:4px 8px; border-radius:6px; font-weight:700; color:var(--navy);">
+            <option value="">-- Xem thử màn hình của 7 Line Leader --</option>
+            <option value="LD_CUTTING">1. Line CUTTING (Cắt, Nhiệt luyện, Độ cứng)</option>
+            <option value="LD_NC">2. Line NC (NC1, NC2, NC3)</option>
+            <option value="LD_MNC">3. Line MNC (MNC1, MNC2, MNC3)</option>
+            <option value="LD_GS_GV">4. Line GS-GV (GS, GV)</option>
+            <option value="LD_GP_GE_GI">5. Line GP-GE-GI (GP, GE, GI)</option>
+            <option value="LD_ASSY">6. Line ASSY (Lắp ráp, Đóng thùng, GCN)</option>
+            <option value="LD_KENSA">7. Line KENSA (Kiểm tra)</option>
+          </select>
+          <button class="btn btn-sm btn-danger" onclick="resetSharedData()">🔄 Reset Data Mẫu</button>
+          <button class="btn btn-sm btn-secondary" onclick="logout()">Thoát</button>
+        </div>
+      </header>
+
+      <div class="app-body">
+        <aside class="sidebar">
+          <div class="sidebar-group-title">ĐIỀU HÀNH SẢN XUẤT (EMS)</div>
+          <button class="tab-btn active" onclick="openAdminTab('tab-matrix', this)">📊 Bảng TK (WIP 19 Stages)</button>
+          <button class="tab-btn" onclick="openAdminTab('tab-machines-view', this)">🖥️ Giám Sát Máy Theo 7 Line</button>
+          <button class="tab-btn" onclick="openAdminTab('tab-workcenter', this)">⚙️ Thêm/Bớt Stage & Máy</button>
+          <button class="tab-btn" onclick="openAdminTab('tab-master-sp', this)">📐 Quản Lý Mã Hàng & Routing</button>
+          <button class="tab-btn" onclick="openAdminTab('tab-create-po', this)">📦 Quản Lý LOT (Chẻ LOT)</button>
+          <button class="tab-btn" onclick="openAdminTab('tab-ng', this)">⚠️ Xử Lý Hàng NG</button>
+          <button class="tab-btn" onclick="openAdminTab('tab-logs', this)">🕒 Lịch Sử Sản Xuất</button>
+
+          <div class="sidebar-group-title">LIÊN KẾT PHÂN HỆ KHO</div>
+          <a href="kho.html" class="tab-btn" style="color:var(--green); font-weight:800; text-decoration:none;">
+            📦 Sang App Kho NVL (`kho.html`) ➔
+          </a>
+        </aside>
+
+        <main class="content">
+          <!-- TAB 1: BẢNG TỔNG KẾT WIP 19 STAGES -->
+          <div id="tab-matrix" class="admin-tab">
+            <div class="kpi-grid" id="admin-kpi-container"></div>
+            <div class="card">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                <div>
+                  <h3 style="color:var(--navy)">BẢNG TỔNG KẾT (WIP) - THEO 7 LINES & 19 CÔNG ĐOẠN (`Stages`)</h3>
+                  <p style="font-size:12px; color:var(--gray-dark)">
+                    Màu cột hiển thị theo từng `line_id` (CUTTING, NC, MNC, GS_GV, GP_GE_GI, ASSY, KENSA)
+                  </p>
+                </div>
+                <div style="display:flex; gap:8px;">
+                  <input type="text" id="filter-matrix-kw" class="search-input" placeholder="🔍 Lọc Số LOT / Mã Hàng..." oninput="renderAdminMatrix()" style="width:220px;" />
+                  <button class="btn btn-sm btn-success" onclick="exportMatrixCSV()">📥 Xuất Excel (CSV)</button>
+                </div>
+              </div>
+              <div class="table-wrap" id="matrix-table-wrap"></div>
+            </div>
+          </div>
+
+          <!-- TAB 2: SƠ ĐỒ MÁY THEO 7 LINE -->
+          <div id="tab-machines-view" class="admin-tab hidden">
+            <div class="card">
+              <h3 style="color:var(--navy); margin-bottom:12px;">Sơ Đồ Trạng Thái Máy Chạy Thuộc 7 Lines & 19 Stages</h3>
+              <div id="admin-machine-board"></div>
+            </div>
+          </div>
+
+          <!-- TAB 3: THÊM BỚT STAGE & MÁY -->
+          <div id="tab-workcenter" class="admin-tab hidden">
+            <div class="grid-2">
+              <div class="card">
+                <h3 style="color:var(--navy); margin-bottom:6px;">A. Thêm / Bớt Công Đoạn (`Stages`) Thuộc `Lines`</h3>
+                <form onsubmit="saveStage(event)" style="background:#f8fafc; padding:14px; border-radius:8px; border:1px solid var(--border); margin-bottom:14px;">
+                  <div style="display:grid; grid-template-columns: 1fr 1.3fr; gap:8px; margin-bottom:8px;">
+                    <div class="input-group" style="margin:0;">
+                      <label>Mã Công Đoạn (`stage_code`)</label>
+                      <input type="text" id="st-code" required placeholder="VD: NC4" style="text-transform:uppercase" />
+                    </div>
+                    <div class="input-group" style="margin:0;">
+                      <label>Tên Công Đoạn (`stage_name`)</label>
+                      <input type="text" id="st-name" required placeholder="VD: NC4" />
+                    </div>
+                  </div>
+                  <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:8px;">
+                    <div class="input-group" style="margin:0;">
+                      <label>Thuộc Line (`line_id`)</label>
+                      <select id="st-line" required></select>
+                    </div>
+                    <div class="input-group" style="margin:0;">
+                      <label>Thứ tự cột</label>
+                      <input type="number" id="st-order" required value="20" min="1" />
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-primary w-100" style="margin-top:10px;">+ Lưu Công Đoạn (`Stage`)</button>
+                </form>
+                <div class="table-wrap" style="max-height:420px; overflow-y:auto;">
+                  <table class="matrix-table">
+                    <thead><tr><th>TT</th><th>Mã Stage</th><th>Tên Stage</th><th>Thuộc Line</th><th>Số Máy</th><th>Xóa</th></tr></thead>
+                    <tbody id="stages-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="card">
+                <h3 style="color:var(--navy); margin-bottom:6px;">B. Thêm / Bớt Máy Móc Thuộc `Stage`</h3>
+                <form onsubmit="saveMachine(event)" style="background:#f8fafc; padding:14px; border-radius:8px; border:1px solid var(--border); margin-bottom:14px;">
+                  <div style="display:grid; grid-template-columns: 1fr 1.4fr; gap:8px; margin-bottom:8px;">
+                    <div class="input-group" style="margin:0;">
+                      <label>Mã Máy</label>
+                      <input type="text" id="mc-code" required placeholder="VD: M-NC1-03" style="text-transform:uppercase" />
+                    </div>
+                    <div class="input-group" style="margin:0;">
+                      <label>Tên Máy</label>
+                      <input type="text" id="mc-name" required placeholder="VD: Máy Tiện NC1 Số 3" />
+                    </div>
+                  </div>
+                  <div style="display:grid; grid-template-columns: 1.4fr 1fr; gap:8px;">
+                    <div class="input-group" style="margin:0;">
+                      <label>Gán vào Công Đoạn (`stage_code`)</label>
+                      <select id="mc-stage" required></select>
+                    </div>
+                    <div class="input-group" style="margin:0;">
+                      <label>Định mức / Ca</label>
+                      <input type="number" id="mc-cap" required value="500" min="1" />
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-success w-100" style="margin-top:10px;">+ Thêm / Cập Nhật Máy</button>
+                </form>
+                <div class="table-wrap" style="max-height:420px; overflow-y:auto;">
+                  <table class="matrix-table">
+                    <thead><tr><th>Mã Máy</th><th>Tên Máy</th><th>Stage (Line)</th><th>ĐM/Ca</th><th>Trạng Thái</th><th>Xóa</th></tr></thead>
+                    <tbody id="machines-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 4: MÃ HÀNG & LỘ TRÌNH -->
+          <div id="tab-master-sp" class="admin-tab hidden">
+            <div class="grid-2">
+              <div class="card">
+                <h3 style="color:var(--navy); margin-bottom:12px;">Tạo Mã Hàng & Lộ Trình (`Routing`)</h3>
+                <form onsubmit="saveProduct(event)">
+                  <div class="input-group"><label>Mã Sản Phẩm</label><input type="text" id="sp-code" required placeholder="VD: TB-30" style="text-transform:uppercase" /></div>
+                  <div class="input-group"><label>Tên Sản Phẩm</label><input type="text" id="sp-name" required placeholder="VD: Bánh răng thép" /></div>
+                  <div class="input-group"><label>Quy Cách</label><input type="text" id="sp-spec" placeholder="VD: Ø30x15mm" /></div>
+                  <div class="input-group">
+                    <label>Lộ Trình Các Công Đoạn (`Stages`)</label>
+                    <div id="routing-steps-box" style="background:#f8fafc; padding:12px; border:1px dashed #cbd5e1; border-radius:8px;"></div>
+                    <button type="button" class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="addRoutingStepRow()">+ Thêm công đoạn</button>
+                  </div>
+                  <button type="submit" class="btn btn-primary w-100">Lưu Mã Hàng</button>
+                </form>
+              </div>
+              <div class="card">
+                <h3 style="color:var(--navy); margin-bottom:12px;">Danh Sách Mã Hàng</h3>
+                <div class="table-wrap">
+                  <table class="matrix-table">
+                    <thead><tr><th>Mã Hàng</th><th>Tên Sản Phẩm</th><th>Lộ Trình (`Stages`)</th><th>Xóa</th></tr></thead>
+                    <tbody id="products-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 5: CHẺ LOT -->
+          <div id="tab-create-po" class="admin-tab hidden">
+            <div class="grid-2">
+              <div class="card">
+                <h3 style="color:var(--navy); margin-bottom:12px;">Tạo LOT và Đưa Sản Xuất</h3>
+                <form onsubmit="createLotsBatch(event)">
+                  <div class="input-group"><label>Số LOT Gốc (VD: PO1610)</label><input type="text" id="po-prefix" required placeholder="PO1610" style="text-transform:uppercase" /></div>
+                  <div class="input-group"><label>Chọn Mã Hàng</label><select id="po-product-select" required></select></div>
+                  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="input-group"><label>Tổng Sản Lượng</label><input type="number" id="po-total-qty" required value="600" min="1" /></div>
+                    <div class="input-group"><label>SL 1 LOT (SL chia)</label><input type="number" id="po-split-qty" required value="300" min="1" /></div>
+                  </div>
+                  <div class="input-group"><label>Ngày Cấp Phát</label><input type="date" id="po-date" required /></div>
+                  <button type="submit" class="btn btn-primary w-100">Chẻ LOT & Cấp Phát Sản Xuất</button>
+                </form>
+              </div>
+              <div class="card">
+                <h3 style="color:var(--navy); margin-bottom:12px;">Danh Sách Các LOT Hiện Có</h3>
+                <div class="table-wrap">
+                  <table class="matrix-table">
+                    <thead><tr><th>Số LOT</th><th>Mã Hàng</th><th>Ngày Cấp</th><th>Tổng SL</th><th>Kho TP</th><th>Xóa</th></tr></thead>
+                    <tbody id="lots-admin-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 6: XỬ LÝ HÀNG NG -->
+          <div id="tab-ng" class="admin-tab hidden">
+            <div class="card" style="max-width:560px; margin:0 auto;">
+              <h3 style="color:var(--maroon); margin-bottom:12px;">Xử Lý Hàng Lỗi (NG)</h3>
+              <form onsubmit="resolveNgAction(event)">
+                <div class="input-group"><label>1. Chọn LOT và Công đoạn có NG</label><select id="ng-lot-stage-select" required></select></div>
+                <div class="input-group"><label>2. Số lượng NG xử lý</label><input type="number" id="ng-resolve-qty" required min="1" value="1" /></div>
+                <div class="input-group">
+                  <label>3. Hành động</label>
+                  <select id="ng-resolve-type" onchange="document.getElementById('ng-return-wrap').classList.toggle('hidden', this.value !== 'REWORK')">
+                    <option value="SCRAP">Báo Hủy (SCRAP)</option>
+                    <option value="REWORK">Làm Lại (REWORK - Đưa về công đoạn cũ)</option>
+                  </select>
+                </div>
+                <div class="input-group hidden" id="ng-return-wrap"><label>Trả về công đoạn nào?</label><select id="ng-return-stage"></select></div>
+                <button type="submit" class="btn btn-danger w-100">Xác Nhận</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- TAB 7: LỊCH SỬ SẢN XUẤT -->
+          <div id="tab-logs" class="admin-tab hidden">
+            <div class="card">
+              <h3 style="color:var(--navy); margin-bottom:12px;">Lịch Sử Giao Dịch Sản Xuất Qua Các Công Đoạn & Máy</h3>
+              <div class="table-wrap">
+                <table class="matrix-table">
+                  <thead><tr><th>Thời Gian</th><th>Người Thao Tác</th><th>Máy Chạy</th><th>Số LOT</th><th>Mã Hàng</th><th>Từ Stage ➔ Đến Stage</th><th>PASS / NG</th></tr></thead>
+                  <tbody id="prod-logs-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- 3. MÀN HÌNH LEADER DI ĐỘNG (THEO ĐÚNG LINE_ID CỦA LEADER) -->
+    <div id="leader-screen" class="hidden">
+      <header class="navbar" style="padding: 10px 14px;">
+        <div>
+          <div style="font-size:14px; font-weight:800;">
+            Xin chào, <span id="ld-header-name" style="color:var(--lime);">Leader</span>
+          </div>
+          <div style="font-size:12px; margin-top:2px;">
+            Line quản lý: <b id="ld-header-line-name">...</b>
+            (<span id="ld-header-stages" style="color:#fde68a;">...</span>)
+          </div>
+        </div>
+        <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+          <!-- NÚT MỞ SANG TRANG KHO.HTML: CHỈ HIỂN THỊ KHI LEADER THUỘC LINE CUTTING -->
+          <a href="kho.html" id="btn-goto-kho-app" class="btn btn-sm btn-danger hidden" style="text-decoration:none; color:#fff;">
+            📦 Mở App Kho NVL (`kho.html`) ➔
+          </a>
+
+          <select id="quick-switch-leader" onchange="quickLogin(this.value)" style="padding:5px 8px; border-radius:6px; font-size:12px; font-weight:700; background:#fff; color:var(--navy); border:none;">
+            <option value="LD_CUTTING">1. Line CUTTING (Cắt, Nhiệt, Độ cứng + Kho)</option>
+            <option value="LD_NC">2. Line NC (NC1, NC2, NC3)</option>
+            <option value="LD_MNC">3. Line MNC (MNC1, MNC2, MNC3)</option>
+            <option value="LD_GS_GV">4. Line GS-GV (GS, GV)</option>
+            <option value="LD_GP_GE_GI">5. Line GP-GE-GI (GP, GE, GI)</option>
+            <option value="LD_ASSY">6. Line ASSY (Lắp ráp, Đóng thùng, GCN)</option>
+            <option value="LD_KENSA">7. Line KENSA (Kiểm tra)</option>
+            <option value="ADMIN">🖥️ Về Màn Hình Admin VP</option>
+          </select>
+          <button class="btn btn-sm btn-secondary" onclick="logout()">Thoát</button>
+        </div>
+      </header>
+
+      <div class="tabs-mobile">
+        <button class="tab-btn-mobile active" id="btn-ld-tab-wip" onclick="openLeaderTab('ld-tab-wip', this)">
+          📋 1. Số lượng tồn & Phân Máy (<span id="badge-count-waiting">0</span>)
+        </button>
+        <button class="tab-btn-mobile" id="btn-ld-tab-machines" onclick="openLeaderTab('ld-tab-machines', this)">
+          ⚙️ 2. Thao Tác Máy Chạy (<span id="badge-count-running">0</span>)
+        </button>
+        <button class="tab-btn-mobile" id="btn-ld-tab-history" onclick="openLeaderTab('ld-tab-history', this)">
+          🕒 3. Hàng đã giao
+        </button>
+      </div>
+
+      <main class="content-mobile">
+        <!-- BỘ LỌC TÌM KIẾM TRÊN MOBILE LEADER -->
+        <div id="ld-filter-bar" style="display:flex; gap:8px; margin-bottom:12px;">
+          <select id="ld-stage-subfilter" class="search-input" onchange="renderLeaderScreen()" style="flex:1.2; font-weight:700; color:var(--navy);">
+            <option value="ALL">-- Mọi công đoạn thuộc Line --</option>
+          </select>
+          <input type="text" id="ld-kw-filter" class="search-input" placeholder="🔍 Mã hàng / Số LOT..." oninput="renderLeaderScreen()" style="flex:1;" />
+        </div>
+
+        <div id="ld-tab-wip" class="ld-tab">
+          <div id="ld-waiting-lots-container"></div>
+        </div>
+
+        <div id="ld-tab-machines" class="ld-tab hidden">
+          <div id="leader-machines-container"></div>
+        </div>
+
+        <div id="ld-tab-history" class="ld-tab hidden">
+          <div class="card">
+            <h3 style="color:var(--navy); margin-bottom:10px;">Lịch Sử Hàng Đã Giao Tại Line Của Bạn</h3>
+            <div class="table-wrap">
+              <table class="matrix-table">
+                <thead><tr><th>Thời Gian</th><th>Chi Tiết</th><th>Số Lượng</th></tr></thead>
+                <tbody id="ld-history-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

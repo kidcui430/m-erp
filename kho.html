@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>APP KHO NVL ĐỘC LẬP - BIC (LEADER CUTTING & ADMIN)</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="toast" class="hidden">Thông báo</div>
+
+    <header class="navbar" style="background: #14532d;">
+      <div class="nav-brand">
+        <span>📦 APP QUẢN LÝ KHO NVL (kho.html)</span>
+        <span class="badge-mode" id="kho-user-badge">Đang kiểm tra...</span>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <a href="index.html" class="btn btn-sm btn-secondary" style="text-decoration:none; font-weight:800;">
+          ⬅️ Quay về App Sản Xuất (index.html)
+        </a>
+      </div>
+    </header>
+
+    <!-- MÀN HÌNH CHẶN NẾU LEADER LINE KHÁC (NC, MNC, ASSY...) MỞ TRANG KHO -->
+    <div id="kho-access-denied" class="hidden" style="max-width:500px; margin:60px auto; padding:20px;">
+      <div class="card" style="text-align:center; border-top:4px solid var(--maroon);">
+        <h2 style="color:var(--maroon); margin-bottom:10px;">⛔ KHÔNG CÓ QUYỀN TRUY CẬP KHO NVL</h2>
+        <p style="margin-bottom:18px; color:var(--gray-dark);">
+          Phần Nhập kho và Phân bổ NVL xuống sản xuất chỉ do <b>Leader Line CUTTING</b> và <b>Admin Văn Phòng</b> quản lý.
+        </p>
+        <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+          <a href="index.html" class="btn btn-primary" style="text-decoration:none;">⬅️ Quay lại App Sản Xuất</a>
+          <button class="btn btn-danger" onclick="switchToCuttingLeaderInKho()">🔪 Chuyển sang quyền Leader CUTTING</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- GIAO DIỆN CHÍNH CỦA APP KHO -->
+    <div id="kho-main-view" class="hidden" style="max-width:1180px; margin:0 auto; padding:16px;">
+      <div class="tabs-mobile" style="margin-bottom:16px; border-radius:8px; overflow:hidden; border:1px solid var(--border);">
+        <button class="tab-btn-mobile active" onclick="openKhoTab('kho-tab-tx', this)">
+          📤 1. Nhập Kho & Phân NVL Xuống SX
+        </button>
+        <button class="tab-btn-mobile" onclick="openKhoTab('kho-tab-stock', this)">
+          🗄️ 2. Tồn Kho & Danh Mục NVL
+        </button>
+        <button class="tab-btn-mobile" onclick="openKhoTab('kho-tab-ncc', this)">
+          🏢 3. Nhà Cung Cấp
+        </button>
+        <button class="tab-btn-mobile" onclick="openKhoTab('kho-tab-history', this)">
+          🕒 4. Sổ Cái Lịch Sử Kho
+        </button>
+      </div>
+
+      <!-- TAB 1: NHẬP KHO & XUẤT NVL RA SẢN XUẤT -->
+      <div id="kho-tab-tx" class="kho-tab">
+        <div class="grid-2">
+          <div class="card" style="border-top:4px solid var(--green);">
+            <h3 style="color:var(--navy); margin-bottom:4px;">Lập Phiếu Nhập Kho / Phân Bổ NVL Xuống Sản Xuất</h3>
+            <p style="font-size:12px; color:var(--gray-dark); margin-bottom:14px;">
+              Leader Line CUTTING nhập kho vật tư mới và phân bổ NVL cho từng LOT / Máy chạy.
+            </p>
+
+            <form onsubmit="submitKhoTransaction(event)">
+              <div class="input-group">
+                <label>1. Loại Giao Dịch Kho</label>
+                <select id="kho-tx-type" onchange="toggleKhoTxMode()" style="font-weight:800; color:var(--navy);">
+                  <option value="XUAT_SAN_XUAT">📤 XUẤT PHÔI / NVL PHÂN XUỐNG SẢN XUẤT (LOT & MÁY)</option>
+                  <option value="NHAP_KHO">📥 NHẬP NGUYÊN VẬT LIỆU MỚI VÀO KHO</option>
+                </select>
+              </div>
+
+              <div class="input-group">
+                <label>2. Tìm & Chọn Tên Nguyên Vật Liệu (Searchable Dropdown)</label>
+                <div class="searchable-dropdown" id="kho-dropdown-wrap">
+                  <input
+                    type="text"
+                    id="kho-nvl-search"
+                    placeholder="🔍 Chạm vào đây hoặc gõ tên NVL..."
+                    autocomplete="off"
+                    onfocus="showKhoNvlDropdown()"
+                    oninput="filterKhoNvlDropdown()"
+                    required
+                  />
+                  <input type="hidden" id="kho-nvl-code" />
+                  <ul id="kho-nvl-list" class="dropdown-list hidden"></ul>
+                </div>
+                <div id="kho-stock-info" style="margin-top:6px; font-size:12px; font-weight:700; color:var(--green);"></div>
+              </div>
+
+              <div id="kho-xuat-sx-group">
+                <div class="input-group">
+                  <label>3. Phân Bổ Cho Số LOT Sản Xuất Nào?</label>
+                  <select id="kho-lot-select" required></select>
+                </div>
+                <div class="input-group">
+                  <label>4. Cấp Trực Tiếp Cho Máy Nào?</label>
+                  <select id="kho-machine-select"></select>
+                </div>
+              </div>
+
+              <div id="kho-nhap-ncc-group" class="hidden">
+                <div class="input-group">
+                  <label>3. Nhà Cung Cấp Giao Hàng</label>
+                  <select id="kho-ncc-select"></select>
+                </div>
+              </div>
+
+              <div class="numpad-grid">
+                <div>
+                  <label style="font-size:12px; font-weight:700; display:block; margin-bottom:4px;">SỐ LƯỢNG CHÍNH</label>
+                  <input type="number" inputmode="decimal" id="kho-qty-main" class="big-input ok-input w-100" placeholder="0" step="0.1" min="0.1" required />
+                </div>
+                <div>
+                  <label style="font-size:12px; font-weight:700; display:block; margin-bottom:4px;">SL ĐÓNG GÓI (CÂY/BAO)</label>
+                  <input type="number" inputmode="numeric" id="kho-qty-sub" class="big-input w-100" style="border:2px solid #94a3b8;" placeholder="0" />
+                </div>
+              </div>
+
+              <div class="input-group">
+                <label>Ghi Chú</label>
+                <input type="text" id="kho-tx-note" placeholder="VD: Cấp phôi thép C45 cho máy cắt M-CAT-01..." />
+              </div>
+
+              <button type="submit" class="btn btn-success w-100" style="min-height:48px; font-size:15px;">
+                ✅ XÁC NHẬN GHI SỔ KHO NVL
+              </button>
+            </form>
+          </div>
+
+          <div class="card">
+            <h3 style="color:var(--navy); margin-bottom:12px;">Bảng Tồn Kho NVL Tức Thời</h3>
+            <div class="table-wrap">
+              <table class="matrix-table">
+                <thead><tr><th>Mã NVL</th><th>Tên NVL & Quy Cách</th><th>Tổng Nhập</th><th>Đã Xuất SX</th><th>Tồn Kho</th></tr></thead>
+                <tbody id="kho-quick-stock-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: DANH MỤC NVL -->
+      <div id="kho-tab-stock" class="kho-tab hidden">
+        <div class="grid-2">
+          <div class="card">
+            <h3 style="color:var(--navy); margin-bottom:12px;">Khai Báo Thêm Mã Nguyên Vật Liệu Mới</h3>
+            <form onsubmit="addNewNvlInKho(event)">
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div class="input-group"><label>Phân Loại</label><input type="text" id="new-nvl-cat" required placeholder="Kim Loại / Hóa Chất..." /></div>
+                <div class="input-group"><label>Đơn Vị Tính</label><input type="text" id="new-nvl-unit" required placeholder="Kg / Cây / Lít" /></div>
+              </div>
+              <div class="input-group"><label>Tên Nguyên Vật Liệu</label><input type="text" id="new-nvl-name" required placeholder="VD: Thép tròn SKD11" /></div>
+              <div class="input-group"><label>Quy Cách</label><input type="text" id="new-nvl-spec" placeholder="Ø40mm x 6m" /></div>
+              <div class="input-group"><label>Tồn Đầu Kỳ</label><input type="number" id="new-nvl-init" value="100" min="0" step="0.1" /></div>
+              <button type="submit" class="btn btn-primary w-100">+ Lưu Danh Mục NVL</button>
+            </form>
+          </div>
+          <div class="card">
+            <h3 style="color:var(--navy); margin-bottom:12px;">Danh Mục Nguyên Vật Liệu</h3>
+            <div class="table-wrap">
+              <table class="matrix-table">
+                <thead><tr><th>Mã NVL</th><th>Nhóm</th><th>Tên & Quy Cách</th><th>ĐVT</th><th>Tồn Kho</th><th>Xóa</th></tr></thead>
+                <tbody id="kho-full-stock-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: NHÀ CUNG CẤP -->
+      <div id="kho-tab-ncc" class="kho-tab hidden">
+        <div class="grid-2">
+          <div class="card">
+            <h3 style="color:var(--navy); margin-bottom:12px;">Thêm Nhà Cung Cấp</h3>
+            <form onsubmit="addNewNccInKho(event)">
+              <div class="input-group"><label>Tên Nhà Cung Cấp</label><input type="text" id="new-ncc-name" required /></div>
+              <div class="input-group"><label>Số ĐT / Liên Hệ</label><input type="text" id="new-ncc-phone" /></div>
+              <div class="input-group"><label>Địa Chỉ</label><input type="text" id="new-ncc-addr" /></div>
+              <button type="submit" class="btn btn-primary w-100">+ Lưu Nhà Cung Cấp</button>
+            </form>
+          </div>
+          <div class="card">
+            <h3 style="color:var(--navy); margin-bottom:12px;">Danh Sách Nhà Cung Cấp</h3>
+            <div class="table-wrap">
+              <table class="matrix-table">
+                <thead><tr><th>Mã NCC</th><th>Tên Nhà Cung Cấp</th><th>Liên Hệ</th><th>Địa Chỉ</th></tr></thead>
+                <tbody id="kho-ncc-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: LỊCH SỬ KHO -->
+      <div id="kho-tab-history" class="kho-tab hidden">
+        <div class="card">
+          <h3 style="color:var(--navy); margin-bottom:12px;">Sổ Cái Lịch Sử Nhập Kho & Xuất Phân Bổ Cho Sản Xuất</h3>
+          <div class="table-wrap">
+            <table class="matrix-table">
+              <thead>
+                <tr>
+                  <th>Thời Gian</th>
+                  <th>Người Thao Tác</th>
+                  <th>Mã & Tên NVL</th>
+                  <th>Loại GD</th>
+                  <th>Số Lượng</th>
+                  <th>Phân Cho LOT / Máy</th>
+                  <th>Ghi Chú</th>
+                </tr>
+              </thead>
+              <tbody id="kho-history-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="kho.js"></script>
+  </body>
+</html>
