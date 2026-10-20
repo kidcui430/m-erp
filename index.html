@@ -9,6 +9,37 @@
   <body>
     <div id="toast" class="hidden">Thông báo</div>
 
+    <!-- MODAL BẮT BUỘC ĐỔI MẬT KHẨU LẦN ĐẦU CHO LEADER -->
+    <div id="modal-first-change-pwd" class="modal-backdrop hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 style="margin:0; font-size:16px;">🔐 ĐỔI MẬT KHẨU LẦN ĐẦU ĐĂNG NHẬP</h3>
+          <p style="font-size:12px; margin-top:4px; opacity:0.85;">
+            Vì lý do an toàn bảo mật, vui lòng thiết lập mật khẩu mới cho tài khoản của bạn.
+          </p>
+        </div>
+        <div class="modal-body">
+          <form id="form-first-change-pwd" onsubmit="submitFirstChangePassword(event)">
+            <div class="input-group">
+              <label>Tài khoản</label>
+              <input type="text" id="chg-pwd-user" readonly style="background:#f1f5f9; font-weight:700; color:var(--navy);" />
+            </div>
+            <div class="input-group">
+              <label>Mật khẩu mới (tối thiểu 4 ký tự)</label>
+              <input type="password" id="chg-pwd-new" required placeholder="Nhập mật khẩu mới..." minlength="4" />
+            </div>
+            <div class="input-group">
+              <label>Xác nhận mật khẩu mới</label>
+              <input type="password" id="chg-pwd-confirm" required placeholder="Nhập lại mật khẩu mới..." minlength="4" />
+            </div>
+            <button type="submit" class="btn btn-primary w-100" style="min-height:44px; margin-top:8px;">
+              ✅ LƯU MẬT KHẨU MỚI & TIẾP TỤC
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <!-- 1. MÀN HÌNH ĐĂNG NHẬP -->
     <div id="login-screen">
       <div class="login-card" style="max-width: 460px;">
@@ -327,6 +358,7 @@
             <option value="LD_KENSA">7. Line KENSA (Kiểm tra)</option>
             <option value="ADMIN">🖥️ Về Màn Hình Admin VP</option>
           </select>
+          <button class="btn btn-sm btn-secondary" onclick="openChangePasswordModal()" title="Đổi mật khẩu tài khoản">🔑 Đổi Pass</button>
           <button class="btn btn-sm btn-secondary" onclick="logout()">Thoát</button>
         </div>
       </header>
@@ -340,6 +372,9 @@
         </button>
         <button class="tab-btn-mobile" id="btn-ld-tab-history" onclick="openLeaderTab('ld-tab-history', this)">
           🕒 3. Hàng đã giao
+        </button>
+        <button class="tab-btn-mobile hidden" id="btn-ld-tab-cutting-nvl" onclick="openLeaderTab('ld-tab-cutting-nvl', this)">
+          📦 4. Nhập / Xuất NVL
         </button>
       </div>
 
@@ -369,6 +404,22 @@
                 <tbody id="ld-history-tbody"></tbody>
               </table>
             </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: THEO DÕI NHẬP & XUẤT NVL (CHỈ CHO LINE CUTTING) -->
+        <div id="ld-tab-cutting-nvl" class="ld-tab hidden">
+          <div class="card" style="border-top:4px solid var(--maroon);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+              <div>
+                <h3 style="color:var(--navy); margin-bottom:2px;">📦 Lịch Sử Nhập Phôi & Xuất NVL Phân Xưởng</h3>
+                <p style="font-size:12px; color:var(--gray-dark);">Chỉ Leader Line CUTTING & Admin có quyền quản lý</p>
+              </div>
+              <a href="kho.html" class="btn btn-sm btn-danger" style="text-decoration:none; color:#fff;">
+                Mở Chi Tiết Kho (`kho.html`) ➔
+              </a>
+            </div>
+            <div id="cutting-nvl-quick-view"></div>
           </div>
         </div>
       </main>

@@ -1,0 +1,22 @@
+// wrangler.jsonc - Cloudflare Worker Configuration
+// App ERP EMS - BIC
+//
+// Huong dan:
+//   1. Dang nhap: npx wrangler login
+//   2. Tao D1 database: npx wrangler d1 create bic-erp-db
+//   3. Copy database_id vao truong id ben duoi
+//   4. Tao bang: npx wrangler d1 execute bic-erp-db --file=./schema.sql
+//   5. Deploy: npx wrangler deploy
+{
+  "name": "bic-erp-api",
+  "main": "worker.js",
+  "compatibility_date": "2024-01-01",
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "bic-erp-db",
+      "database_id": "PASTE_YOUR_DATABASE_ID_HERE"
+    }
+  ]
+}

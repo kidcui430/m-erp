@@ -11,25 +11,27 @@ var db = null;
 var lastLineIdRendered = "";
 
 var LINE_COLORS = {
-  CUTTING: "#ffebee",
-  NC: "#e3f2fd",
-  MNC: "#e8f5e9",
-  GS_GV: "#fff3e0",
-  GP_GE_GI: "#f3e5f5",
-  ASSY: "#fffde7",
-  KENSA: "#eceff1"
+  CUTTING: "#fee2e2",
+  NC: "#e0f2fe",
+  MNC: "#dcfce7",
+  GS_GV: "#ffedd5",
+  GP_GE_GI: "#f3e8ff",
+  ASSY: "#fef9c3",
+  KENSA: "#f1f5f9"
 };
 
 var USERS_DIRECTORY = {
-  ADMIN: { ma_nv: "ADMIN", ten_nv: "Admin Văn Phòng", role: "ADMIN", line_id: "ALL" },
-  LD_CUTTING: { ma_nv: "LD_CUTTING", ten_nv: "Leader Cutting", role: "LEADER", line_id: "CUTTING" },
-  LD_NC: { ma_nv: "LD_NC", ten_nv: "Leader Line NC", role: "LEADER", line_id: "NC" },
-  LD_MNC: { ma_nv: "LD_MNC", ten_nv: "Leader Line MNC", role: "LEADER", line_id: "MNC" },
-  LD_GS_GV: { ma_nv: "LD_GS_GV", ten_nv: "Leader Line GS-GV", role: "LEADER", line_id: "GS_GV" },
-  LD_GP_GE_GI: { ma_nv: "LD_GP_GE_GI", ten_nv: "Leader Line GP-GE-GI", role: "LEADER", line_id: "GP_GE_GI" },
-  LD_ASSY: { ma_nv: "LD_ASSY", ten_nv: "Leader Line Assy", role: "LEADER", line_id: "ASSY" },
-  LD_KENSA: { ma_nv: "LD_KENSA", ten_nv: "Leader Line Kensa", role: "LEADER", line_id: "KENSA" }
+  ADMIN: { ma_nv: "ADMIN", password: "123", ten_nv: "Admin Văn Phòng", role: "ADMIN", line_id: "ALL", must_change_pwd: false },
+  LD_CUTTING: { ma_nv: "LD_CUTTING", password: "123", ten_nv: "Leader Line Cutting", role: "LEADER", line_id: "CUTTING", must_change_pwd: true },
+  LD_NC: { ma_nv: "LD_NC", password: "123", ten_nv: "Leader Line NC", role: "LEADER", line_id: "NC", must_change_pwd: true },
+  LD_MNC: { ma_nv: "LD_MNC", password: "123", ten_nv: "Leader Line MNC", role: "LEADER", line_id: "MNC", must_change_pwd: true },
+  LD_GS_GV: { ma_nv: "LD_GS_GV", password: "123", ten_nv: "Leader Line Mài (GS, GV)", role: "LEADER", line_id: "GS_GV", must_change_pwd: true },
+  LD_GP_GE_GI: { ma_nv: "LD_GP_GE_GI", password: "123", ten_nv: "Leader Line Mài (GP, GE, GI)", role: "LEADER", line_id: "GP_GE_GI", must_change_pwd: true },
+  LD_ASSY: { ma_nv: "LD_ASSY", password: "123", ten_nv: "Leader Line Assy", role: "LEADER", line_id: "ASSY", must_change_pwd: true },
+  LD_KENSA: { ma_nv: "LD_KENSA", password: "123", ten_nv: "Leader Line Kensa", role: "LEADER", line_id: "KENSA", must_change_pwd: true }
 };
+
+var pendingFirstLoginUser = null;
 
 function el(id) {
   return document.getElementById(id);
@@ -61,14 +63,24 @@ function showToast(msg, isError) {
 
 function getInitialSharedData() {
   return {
+    users: [
+      { ma_nv: "ADMIN", password: "123", ten_nv: "Admin Văn Phòng", role: "ADMIN", line_id: "ALL", must_change_pwd: false },
+      { ma_nv: "LD_CUTTING", password: "123", ten_nv: "Leader Line Cutting", role: "LEADER", line_id: "CUTTING", must_change_pwd: true },
+      { ma_nv: "LD_NC", password: "123", ten_nv: "Leader Line NC", role: "LEADER", line_id: "NC", must_change_pwd: true },
+      { ma_nv: "LD_MNC", password: "123", ten_nv: "Leader Line MNC", role: "LEADER", line_id: "MNC", must_change_pwd: true },
+      { ma_nv: "LD_GS_GV", password: "123", ten_nv: "Leader Line Mài (GS, GV)", role: "LEADER", line_id: "GS_GV", must_change_pwd: true },
+      { ma_nv: "LD_GP_GE_GI", password: "123", ten_nv: "Leader Line Mài (GP, GE, GI)", role: "LEADER", line_id: "GP_GE_GI", must_change_pwd: true },
+      { ma_nv: "LD_ASSY", password: "123", ten_nv: "Leader Line Assy", role: "LEADER", line_id: "ASSY", must_change_pwd: true },
+      { ma_nv: "LD_KENSA", password: "123", ten_nv: "Leader Line Kensa", role: "LEADER", line_id: "KENSA", must_change_pwd: true }
+    ],
     lines: [
-      { line_id: "CUTTING", line_name: "Line Cutting" },
-      { line_id: "NC", line_name: "Line NC" },
-      { line_id: "MNC", line_name: "Line MNC" },
-      { line_id: "ASSY", line_name: "Line Assy" },
-      { line_id: "KENSA", line_name: "Line Kensa" },
-      { line_id: "GS_GV", line_name: "Line GS-GV" },
-      { line_id: "GP_GE_GI", line_name: "Line GP-GE-GI" }
+      { line_id: "CUTTING", line_name: "Line Cắt, Nhiệt, Độ cứng & Kho" },
+      { line_id: "NC", line_name: "Line NC (NC1, NC2, NC3)" },
+      { line_id: "MNC", line_name: "Line MNC (MNC1, MNC2, MNC3)" },
+      { line_id: "GS_GV", line_name: "Line Mài (GS, GV)" },
+      { line_id: "GP_GE_GI", line_name: "Line Mài (GP, GE, GI)" },
+      { line_id: "ASSY", line_name: "Line Lắp ráp, Đóng thùng, GCN" },
+      { line_id: "KENSA", line_name: "Line Kensa" }
     ],
     stages: [
       { stage_code: "CAT", line_id: "CUTTING", stage_name: "Cắt", thu_tu: 1 },
@@ -87,8 +99,8 @@ function getInitialSharedData() {
       { stage_code: "GI", line_id: "GP_GE_GI", stage_name: "GI", thu_tu: 14 },
       { stage_code: "LAP_RAP", line_id: "ASSY", stage_name: "Lắp ráp", thu_tu: 15 },
       { stage_code: "DONG_THUNG", line_id: "ASSY", stage_name: "Đóng thùng", thu_tu: 16 },
-      { stage_code: "XUAT_GCN", line_id: "ASSY", stage_name: "Đi Gia Công Ngoài", thu_tu: 17 },
-      { stage_code: "NHAN_GCN", line_id: "ASSY", stage_name: "Nhận Gia Công Ngoài", thu_tu: 18 },
+      { stage_code: "XUAT_GCN", line_id: "ASSY", stage_name: "Đi-GCN", thu_tu: 17 },
+      { stage_code: "NHAN_GCN", line_id: "ASSY", stage_name: "Về-GCN", thu_tu: 18 },
       { stage_code: "KIEM_TRA", line_id: "KENSA", stage_name: "Kiểm tra", thu_tu: 19 }
     ],
     machines: [
@@ -195,6 +207,10 @@ function loadDatabase() {
   if (raw) {
     try {
       db = JSON.parse(raw);
+      if (!db.users || !Array.isArray(db.users) || db.users.length === 0) {
+        db.users = getInitialSharedData().users;
+        saveDatabase();
+      }
       return;
     } catch (e) {}
   }
@@ -204,6 +220,16 @@ function loadDatabase() {
 
 function saveDatabase() {
   localStorage.setItem(SHARED_DB_KEY, JSON.stringify(db));
+}
+
+function findDbUser(maNv) {
+  if (!db || !db.users) return null;
+  for (var i = 0; i < db.users.length; i++) {
+    if (db.users[i].ma_nv.toUpperCase() === String(maNv).toUpperCase()) {
+      return db.users[i];
+    }
+  }
+  return null;
 }
 
 window.resetSharedData = function () {
@@ -237,21 +263,84 @@ window.addEventListener("DOMContentLoaded", function () {
   if (savedUser) {
     try {
       var u = JSON.parse(savedUser);
-      quickLogin(u.ma_nv);
+      var freshUser = findDbUser(u.ma_nv);
+      if (freshUser && !freshUser.must_change_pwd) {
+        loginSuccess(freshUser);
+      }
     } catch (e) {}
   }
 });
 
 el("login-form").addEventListener("submit", function (e) {
   e.preventDefault();
-  quickLogin(el("username").value.trim().toUpperCase());
+  var uName = el("username").value.trim().toUpperCase();
+  var pwd = el("password").value;
+  var user = findDbUser(uName);
+  if (!user) {
+    showToast("Tài khoản [" + uName + "] không tồn tại!", true);
+    return;
+  }
+  if (user.password !== pwd) {
+    showToast("Mật khẩu không chính xác!", true);
+    return;
+  }
+
+  // Kiem tra bat buoc doi mat khau lan dau
+  if (user.must_change_pwd) {
+    pendingFirstLoginUser = user;
+    el("chg-pwd-user").value = user.ma_nv + " (" + user.ten_nv + ")";
+    el("chg-pwd-new").value = "";
+    el("chg-pwd-confirm").value = "";
+    el("modal-first-change-pwd").classList.remove("hidden");
+    return;
+  }
+
+  loginSuccess(user);
 });
 
-window.quickLogin = function (code) {
-  var u = orVal(USERS_DIRECTORY[code], USERS_DIRECTORY.ADMIN);
+window.submitFirstChangePassword = function (e) {
+  e.preventDefault();
+  if (!pendingFirstLoginUser) return;
+  var newPwd = el("chg-pwd-new").value.trim();
+  var confirmPwd = el("chg-pwd-confirm").value.trim();
+
+  if (newPwd.length < 4) {
+    showToast("Mật khẩu mới phải có tối thiểu 4 ký tự!", true);
+    return;
+  }
+  if (newPwd !== confirmPwd) {
+    showToast("Xác nhận mật khẩu mới không khớp!", true);
+    return;
+  }
+
+  // Cap nhat mat khau trong db
+  for (var i = 0; i < db.users.length; i++) {
+    if (db.users[i].ma_nv === pendingFirstLoginUser.ma_nv) {
+      db.users[i].password = newPwd;
+      db.users[i].must_change_pwd = false;
+      pendingFirstLoginUser = db.users[i];
+      break;
+    }
+  }
+  saveDatabase();
+  el("modal-first-change-pwd").classList.add("hidden");
+  showToast("Đã đổi mật khẩu thành công! Đang vào ca làm việc...");
+  loginSuccess(pendingFirstLoginUser);
+  pendingFirstLoginUser = null;
+};
+
+window.openChangePasswordModal = function () {
+  if (!currentUser) return;
+  pendingFirstLoginUser = findDbUser(currentUser.ma_nv) || currentUser;
+  el("chg-pwd-user").value = pendingFirstLoginUser.ma_nv + " (" + pendingFirstLoginUser.ten_nv + ")";
+  el("chg-pwd-new").value = "";
+  el("chg-pwd-confirm").value = "";
+  el("modal-first-change-pwd").classList.remove("hidden");
+};
+
+function loginSuccess(u) {
   currentUser = u;
   localStorage.setItem(SHARED_USER_KEY, JSON.stringify(u));
-
   el("login-screen").classList.add("hidden");
 
   if (u.role === "ADMIN") {
@@ -263,18 +352,41 @@ window.quickLogin = function (code) {
     el("leader-screen").classList.remove("hidden");
 
     var switcher = el("quick-switch-leader");
-    if (switcher) switcher.value = u.ma_nv;
+    if (switcher) {
+      switcher.value = u.ma_nv;
+      // An select switch neu la Leader thuc te, chi Admin moi duoc chuyen linh hoat
+      switcher.style.display = (u.role === "ADMIN") ? "inline-block" : "none";
+    }
 
-    // Chi Leader Line CUTTING moi hien nut mo sang kho.html
+    // Chi Leader Line CUTTING moi hien nut mo sang kho.html va tab nvl
     var gotoKhoBtn = el("btn-goto-kho-app");
+    var tabCuttingNvlBtn = el("btn-ld-tab-cutting-nvl");
     if (u.line_id === "CUTTING") {
-      gotoKhoBtn.classList.remove("hidden");
+      if (gotoKhoBtn) gotoKhoBtn.classList.remove("hidden");
+      if (tabCuttingNvlBtn) tabCuttingNvlBtn.classList.remove("hidden");
     } else {
-      gotoKhoBtn.classList.add("hidden");
+      if (gotoKhoBtn) gotoKhoBtn.classList.add("hidden");
+      if (tabCuttingNvlBtn) tabCuttingNvlBtn.classList.add("hidden");
     }
 
     openLeaderTab("ld-tab-wip", el("btn-ld-tab-wip"));
   }
+}
+
+window.quickLogin = function (code) {
+  var user = findDbUser(code) || USERS_DIRECTORY[code] || USERS_DIRECTORY.ADMIN;
+  if (el("username")) el("username").value = user.ma_nv;
+  if (el("password")) el("password").value = user.password || "123";
+
+  if (user.must_change_pwd) {
+    pendingFirstLoginUser = user;
+    el("chg-pwd-user").value = user.ma_nv + " (" + user.ten_nv + ")";
+    el("chg-pwd-new").value = "";
+    el("chg-pwd-confirm").value = "";
+    el("modal-first-change-pwd").classList.remove("hidden");
+    return;
+  }
+  loginSuccess(user);
 };
 
 window.logout = function () {
@@ -373,7 +485,40 @@ window.renderLeaderScreen = function () {
   renderLeaderWipCards(activeStageCodes, kw);
   renderLeaderMachinesCards(activeStageCodes, kw);
   renderLeaderHistoryTab(myStageCodes);
+  if (currentUser.line_id === "CUTTING") renderCuttingNvlQuickView();
 };
+
+function renderCuttingNvlQuickView() {
+  var container = el("cutting-nvl-quick-view");
+  if (!container) return;
+  var nvlLogs = orVal(db.nvlLogs, []);
+  var items = orVal(db.items, []);
+
+  var stockHtml = '<h4 style="margin-bottom:8px; color:var(--navy);">📦 Tồn Kho NVL Tức Thời</h4><div class="table-wrap"><table class="matrix-table"><thead><tr><th>Mã NVL</th><th>Tên & Quy Cách</th><th>Nhập</th><th>Xuất SX</th><th>Tồn</th></tr></thead><tbody>';
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    stockHtml += '<tr><td><b>' + it.ma_hang + '</b></td><td style="text-align:left;">' + it.ten_hang + '<br><small style="color:var(--gray-dark);">' + orVal(it.quy_cach, "") + '</small></td>' +
+      '<td style="color:var(--green); font-weight:700;">' + it.tong_nhap + '</td>' +
+      '<td style="color:var(--maroon); font-weight:700;">' + it.tong_xuat_sx + '</td>' +
+      '<td><span class="badge-ok">' + it.ton_kho + ' ' + it.don_vi_tinh + '</span></td></tr>';
+  }
+  stockHtml += '</tbody></table></div>';
+
+  var logHtml = '<h4 style="margin:14px 0 8px; color:var(--navy);">🕒 Lịch Sử 10 Giao Dịch Gần Nhất</h4><div class="table-wrap"><table class="matrix-table"><thead><tr><th>Thời Gian</th><th>NVL</th><th>Loại GD</th><th>Số Lượng</th><th>Ghi Chú</th></tr></thead><tbody>';
+  var cnt = 0;
+  for (var j = 0; j < nvlLogs.length && cnt < 10; j++) {
+    var g = nvlLogs[j];
+    var badge = g.loai_giao_dich === "NHAP_KHO" ? '<span class="badge-ok">Nhập</span>' : '<span class="badge-wait">Xuất SX</span>';
+    logHtml += '<tr><td>' + g.thoi_gian_gd + '</td><td style="text-align:left;"><b>' + g.ma_hang + '</b> ' + g.ten_hang + '</td><td>' + badge + '</td><td><b>' + g.so_luong + '</b> ' + g.don_vi_tinh + '</td><td style="text-align:left;">' + orVal(g.ghi_chu, "-") + '</td></tr>';
+    cnt++;
+  }
+  if (cnt === 0) logHtml += '<tr><td colspan="5" style="padding:14px;">Chưa có giao dịch kho nào.</td></tr>';
+  logHtml += '</tbody></table></div>';
+
+  container.innerHTML = stockHtml + logHtml;
+}
+
+
 
 function findStageObj(code) {
   for (var i = 0; i < db.stages.length; i++) {
@@ -464,11 +609,18 @@ function renderLeaderWipCards(activeStageCodes, kw) {
       "</div>" +
       "</div>" +
       '<div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid var(--border); margin-top:10px;">' +
-      '<label style="font-size:12px; font-weight:700; color:var(--navy); display:block; margin-bottom:6px;">⚙️ Leader phân LOT này vào Máy chạy thuộc công đoạn [' + item.stage_name + "]:</label>" +
-      '<div style="display:flex; gap:6px;">' +
-      '<select id="assign-mc-' + item.so_lot + "-" + item.stage_code + '" class="search-input" style="flex:1; font-weight:700;">' + mcOptions + "</select>" +
-      '<button type="button" class="btn btn-primary btn-sm" onclick="assignLotToStageMachine(\'' + item.so_lot + "', '" + item.stage_code + '\')">Phân Máy</button>' +
-      "</div></div></div>";
+      '<label style="font-size:12px; font-weight:700; color:var(--navy); display:block; margin-bottom:6px;">⚙️ Phân bổ LOT [' + item.stage_name + '] vào Máy:</label>' +
+      '<div style="display:grid; grid-template-columns: 1fr auto; gap:8px; margin-bottom:8px;">' +
+      '<select id="assign-mc-' + item.so_lot + "-" + item.stage_code + '" class="search-input" style="font-weight:700;">' + mcOptions + "</select>" +
+      "</div>" +
+      '<div style="display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:flex-end;">' +
+      '<div>' +
+      '<label style="font-size:11px; font-weight:700; color:var(--slate); display:block; margin-bottom:4px;">SỐ LƯỢNG PHÂN BỔ (Tối đa: ' + item.waiting + ')</label>' +
+      '<input type="number" inputmode="numeric" id="assign-qty-' + item.so_lot + "-" + item.stage_code + '" class="big-input" placeholder="' + item.waiting + '" min="1" max="' + item.waiting + '" style="width:100%; border:2px solid var(--primary); color:var(--primary); background:#eff6ff;" />' +
+      "</div>" +
+      '<button type="button" class="btn btn-primary" style="min-height:48px; padding:0 16px; white-space:nowrap;" onclick="assignLotToStageMachine(\'' + item.so_lot + "', '" + item.stage_code + '\')">✅ Phân Máy</button>' +
+      "</div>" +
+      "</div></div>";
   }
   container.innerHTML = html;
 }
@@ -481,9 +633,20 @@ window.assignLotToStageMachine = function (soLot, stageCode) {
     return;
   }
 
+  var qtyInput = el("assign-qty-" + soLot + "-" + stageCode);
+  var phanBoQty = qtyInput ? parseInt(qtyInput.value) : NaN;
+
   for (var i = 0; i < db.lots.length; i++) {
     if (db.lots[i].so_lot === soLot && db.lots[i].wip_data[stageCode]) {
-      db.lots[i].wip_data[stageCode].machine = maMay;
+      var wipCell = db.lots[i].wip_data[stageCode];
+      var maxQty = wipCell.waiting;
+      if (isNaN(phanBoQty) || phanBoQty <= 0) phanBoQty = maxQty;
+      if (phanBoQty > maxQty) {
+        showToast("Số lượng phân bổ (" + phanBoQty + ") vượt tồn chờ (" + maxQty + ")!", true);
+        return;
+      }
+      wipCell.machine = maMay;
+      wipCell.phan_bo_qty = phanBoQty;
     }
   }
   for (var m = 0; m < db.machines.length; m++) {
@@ -495,7 +658,7 @@ window.assignLotToStageMachine = function (soLot, stageCode) {
 
   saveDatabase();
   renderAllViews();
-  showToast("Đã phân LOT [" + soLot + "] vào máy [" + maMay + "]!");
+  showToast("Đã phân " + phanBoQty + " cái LOT [" + soLot + "] vào máy [" + maMay + "]!");
 };
 
 function renderLeaderMachinesCards(activeStageCodes, kw) {
